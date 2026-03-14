@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>LoRa Telemetry Dashboard</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+margin:0;
+text-align:center;
+}
+
+h1{
+margin-top:20px;
+}
+
+.container{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:20px;
+padding:20px;
+}
+
+.card{
+background:#1e293b;
+padding:20px;
+border-radius:12px;
+width:160px;
+box-shadow:0 4px 10px rgba(0,0,0,0.3);
+}
+
+.value{
+font-size:26px;
+font-weight:bold;
+color:#22c55e;
+}
+
+.status{
+font-size:22px;
+font-weight:bold;
+}
+
+.charts{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:20px;
+width:95%;
+margin:auto;
+}
+
+.chart-box{
+flex:1;
+min-width:280px;
+max-width:350px;
+}
+
+.chart-box canvas{
+background:white;
+border-radius:10px;
+padding:10px;
+}
+
+table{
+width:90%;
+margin:30px auto;
+border-collapse:collapse;
+background:white;
+color:black;
+}
+
+th{
+background:#1e293b;
+color:white;
+padding:10px;
+}
+
+td{
+padding:8px;
+border-bottom:1px solid #ccc;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>🌱 LORA TELEMETRY MONITORING</h1>
+
+<div class="container">
+
+<div class="card">
+Temperature
+<div class="value" id="temp">--</div>
+</div>
+
+<div class="card">
+Humidity
+<div class="value" id="hum">--</div>
+</div>
+
+<div class="card">
+Soil
+<div class="value" id="soil">--</div>
+</div>
+
+<div class="card">
+Light
+<div class="value" id="light">--</div>
+</div>
+
+<div class="card">
+RSSI
+<div class="value" id="rssi">--</div>
+</div>
+
+<div class="card">
+Soil Status
+<div id="soilStatus" class="status">--</div>
+</div>
+
+</div>
+
+<div class="charts">
+
+<div class="chart-box">
+<canvas id="tempChart"></canvas>
+</div>
+
+<div class="chart-box">
+<canvas id="humChart"></canvas>
+</div>
+
+<div class="chart-box">
+<canvas id="soilChart"></canvas>
+</div>
+
+</div>
+
+<h2>📊 Data History (LoRa)</h2>
+
+<table>
+
+<thead>
+
+<tr>
+<th>Time</th>
+<th>Temperature</th>
+<th>Humidity</th>
+<th>Soil</th>
+<th>Light</th>
+<th>RSSI</th>
+</tr>
+
+</thead>
+
+<tbody id="tableBody">
+
+</tbody>
+
+</table>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyDyXIQ1ZSc8wCqsJy6K3xuAZpOvw5Yg7Jk",
+authDomain: "uts-telemtry.firebaseapp.com",
+databaseURL: "https://uts-telemtry-default-rtdb.firebaseio.com",
+projectId: "uts-telemtry",
+storageBucket: "uts-telemtry.firebasestorage.app",
+messagingSenderId: "389013038448",
+appId: "1:389013038448:web:ee1d5ceed470e666a09bb5"
+
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+let labels=[]
+let tempData=[]
+let humData=[]
+let soilData=[]
+
+const tempChart = new Chart(document.getElementById("tempChart"),{
+type:'line',
+data:{
+labels:labels,
+datasets:[{
+label:'Temperature',
+data:tempData,
+borderColor:'red',
+tension:0.4
+}]
+}
+})
+
+const humChart = new Chart(document.getElementById("humChart"),{
+type:'line',
+data:{
+labels:labels,
+datasets:[{
+label:'Humidity',
+data:humData,
+borderColor:'blue',
+tension:0.4
+}]
+}
+})
+
+const soilChart = new Chart(document.getElementById("soilChart"),{
+type:'line',
+data:{
+labels:labels,
+datasets:[{
+label:'Soil Moisture',
+data:soilData,
+borderColor:'green',
+tension:0.4
+}]
+}
+})
+
+const sensorRef = ref(db,"sensor/node1")
+
+onValue(sensorRef,(snapshot)=>{
+
+const data = snapshot.val()
+
+const suhu = data.suhu
+const hum = data.kelembapan
+const soil = data.soil
+const cahaya = data.cahaya
+const rssi = data.rssi
+
+document.getElementById("temp").innerText = suhu
+document.getElementById("hum").innerText = hum
+document.getElementById("soil").innerText = soil
+document.getElementById("light").innerText = cahaya
+document.getElementById("rssi").innerText = rssi
+
+if(soil > 3000){
+
+document.getElementById("soilStatus").innerHTML="🌵 DRY"
+document.getElementById("soilStatus").style.color="orange"
+
+}else{
+
+document.getElementById("soilStatus").innerHTML="💧 WET"
+document.getElementById("soilStatus").style.color="lime"
+
+}
+
+let time = new Date().toLocaleTimeString()
+
+labels.push(time)
+tempData.push(suhu)
+humData.push(hum)
+soilData.push(soil)
+
+if(labels.length>20){
+
+labels.shift()
+tempData.shift()
+humData.shift()
+soilData.shift()
+
+}
+
+tempChart.update()
+humChart.update()
+soilChart.update()
+
+const table = document.getElementById("tableBody")
+
+let row = table.insertRow(0)
+
+row.insertCell(0).innerHTML=time
+row.insertCell(1).innerHTML=suhu
+row.insertCell(2).innerHTML=hum
+row.insertCell(3).innerHTML=soil
+row.insertCell(4).innerHTML=cahaya
+row.insertCell(5).innerHTML=rssi
+
+})
+
+</script>
+
+</body>
+</html>
